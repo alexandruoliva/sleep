@@ -1,0 +1,13 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+
+# Docker/Postgres data
+db/
+
+# Logs and local config
+*.log
+*.iml
