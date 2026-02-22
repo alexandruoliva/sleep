@@ -1,26 +1,39 @@
 package com.noom.interview.fullstack.sleep.models;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.persistence.*;
 import java.time.Instant;
 
 /**
- * Represents a user. The API is aware of the concept of a user;
+ * User entity. The API is aware of the concept of a user;
  * authentication/authorization is out of scope.
  */
-public final class User {
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+public class User {
 
-    private final long id;
-    private final Instant createdAt;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    public User(long id, Instant createdAt) {
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    public User(Long id, Instant createdAt) {
         this.id = id;
         this.createdAt = createdAt;
     }
 
-    public long getId() {
-        return id;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
     }
 }
