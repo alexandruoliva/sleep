@@ -2,13 +2,21 @@ package com.noom.interview.fullstack.sleep.service;
 
 import com.noom.interview.fullstack.sleep.api.CreateSleepLogRequest;
 import com.noom.interview.fullstack.sleep.api.SleepLogResponse;
+import com.noom.interview.fullstack.sleep.api.ThirtyDayAveragesResponse;
+import com.noom.interview.fullstack.sleep.models.MorningFeeling;
 import com.noom.interview.fullstack.sleep.models.SleepLog;
 import com.noom.interview.fullstack.sleep.repository.SleepLogRepository;
 import com.noom.interview.fullstack.sleep.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Business logic for sleep logs: ensure user exists, validate, create/update, fetch last night.
@@ -62,6 +70,61 @@ public class SleepLogService {
     public Optional<SleepLogResponse> getLastNightSleep(long userId) {
         return sleepLogRepository.findTopByUserIdOrderBySleepDateDesc(userId)
                 .map(SleepLogResponse::from);
+    }
+
+    /**
+     * Returns the last 30-day averages for the user: date range, average time in bed,
+     * average went-to-bed and got-up times, and morning feeling frequencies.
+     */
+    public ThirtyDayAveragesResponse getLast30DayAverages(long userId) {
+        ensureUserExists(userId);
+        LocalDate rangeEnd = LocalDate.now();
+        LocalDate rangeStart = rangeEnd.minusDays(29);
+        List<SleepLog> logs = sleepLogRepository.findByUserIdAndSleepDateBetweenOrderBySleepDateAsc(userId, rangeStart, rangeEnd);
+
+        ThirtyDayAveragesResponse response = new ThirtyDayAveragesResponse();
+        response.setRangeStart(rangeStart);
+        response.setRangeEnd(rangeEnd);
+
+        if (logs.isEmpty()) {
+            response.setAverageTotalTimeInBedMinutes(0);
+            response.setAverageWentToBedAt(null);
+            response.setAverageGotUpAt(null);
+            response.setMorningFeelingFrequencies(frequenciesForNone());
+            return response;
+        }
+
+        double avgMinutes = logs.stream().mapToInt(SleepLog::getTotalTimeInBedMinutes).average().orElse(0);
+        response.setAverageTotalTimeInBedMinutes(Math.round(avgMinutes * 10) / 10.0);
+
+        response.setAverageWentToBedAt(averageLocalTime(logs.stream().map(SleepLog::getWentToBedAt).collect(Collectors.toList())));
+        response.setAverageGotUpAt(averageLocalTime(logs.stream().map(SleepLog::getGotUpAt).collect(Collectors.toList())));
+
+        Map<String, Long> fromLogs = logs.stream()
+                .collect(Collectors.groupingBy(log -> log.getMorningFeeling().name(), Collectors.counting()));
+        Map<String, Long> frequencies = Arrays.stream(MorningFeeling.values())
+                .collect(Collectors.toMap(MorningFeeling::name, f -> fromLogs.getOrDefault(f.name(), 0L)));
+        response.setMorningFeelingFrequencies(frequencies);
+
+        return response;
+    }
+
+    private static Map<String, Long> frequenciesForNone() {
+        return Arrays.stream(MorningFeeling.values())
+                .collect(Collectors.toMap(MorningFeeling::name, f -> 0L));
+    }
+
+    /** Averages a list of LocalTime values (as clock times, minutes since midnight). */
+    private static LocalTime averageLocalTime(List<LocalTime> times) {
+        return Optional.ofNullable(times)
+                .filter(t -> !t.isEmpty())
+                .map(t -> {
+                    int avgMinutes = t.stream()
+                            .mapToInt(tt -> tt.getHour() * 60 + tt.getMinute() + tt.getSecond() / 60)
+                            .sum() / t.size();
+                    return LocalTime.of((avgMinutes / 60) % 24, avgMinutes % 60);
+                })
+                .orElse(null);
     }
 
     private void ensureUserExists(long userId) {

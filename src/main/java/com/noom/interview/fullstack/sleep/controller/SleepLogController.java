@@ -2,6 +2,7 @@ package com.noom.interview.fullstack.sleep.controller;
 
 import com.noom.interview.fullstack.sleep.api.CreateSleepLogRequest;
 import com.noom.interview.fullstack.sleep.api.SleepLogResponse;
+import com.noom.interview.fullstack.sleep.api.ThirtyDayAveragesResponse;
 import com.noom.interview.fullstack.sleep.service.SleepLogService;
 import com.noom.interview.fullstack.sleep.service.UserNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,16 @@ public class SleepLogController {
         return sleepLogService.getLastNightSleep(userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Get last 30-day averages", description = "Returns averages for the last 30 calendar days: range, average time in bed, average bed/rise times, and morning feeling frequencies.")
+    @ApiResponse(responseCode = "200", description = "30-day averages",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ThirtyDayAveragesResponse.class)))
+    @ApiResponse(responseCode = "404", description = "User not found")
+    @GetMapping(value = "/30-day-averages", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ThirtyDayAveragesResponse> getLast30DayAverages(@PathVariable long userId) {
+        ThirtyDayAveragesResponse response = sleepLogService.getLast30DayAverages(userId);
+        return ResponseEntity.ok(response);
     }
 
     @ExceptionHandler(UserNotFoundException.class)

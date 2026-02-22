@@ -2,6 +2,7 @@ package com.noom.interview.fullstack.sleep.service;
 
 import com.noom.interview.fullstack.sleep.api.CreateSleepLogRequest;
 import com.noom.interview.fullstack.sleep.api.SleepLogResponse;
+import com.noom.interview.fullstack.sleep.api.ThirtyDayAveragesResponse;
 import com.noom.interview.fullstack.sleep.models.MorningFeeling;
 import com.noom.interview.fullstack.sleep.models.SleepLog;
 import com.noom.interview.fullstack.sleep.models.User;
@@ -16,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -130,6 +133,56 @@ class SleepLogServiceTest {
         assertThat(result).isPresent();
         assertThat(result.get().getId()).isEqualTo(5L);
         assertThat(result.get().getMorningFeeling()).isEqualTo(MorningFeeling.OK);
+    }
+
+    @Test
+    void getLast30DayAverages_throwsWhenUserNotFound() {
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> sleepLogService.getLast30DayAverages(USER_ID))
+                .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
+    void getLast30DayAverages_returnsRangeAndZerosWhenNoLogs() {
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User(USER_ID, Instant.now())));
+        when(sleepLogRepository.findByUserIdAndSleepDateBetweenOrderBySleepDateAsc(eq(USER_ID), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(Arrays.asList());
+
+        ThirtyDayAveragesResponse response = sleepLogService.getLast30DayAverages(USER_ID);
+
+        assertThat(response.getRangeStart()).isNotNull();
+        assertThat(response.getRangeEnd()).isNotNull();
+        assertThat(response.getRangeEnd()).isEqualTo(response.getRangeStart().plusDays(29));
+        assertThat(response.getAverageTotalTimeInBedMinutes()).isEqualTo(0);
+        assertThat(response.getMorningFeelingFrequencies()).containsKeys("BAD", "OK", "GOOD");
+        assertThat(response.getMorningFeelingFrequencies().values()).containsOnly(0L);
+    }
+
+    @Test
+    void getLast30DayAverages_returnsAveragesAndFrequenciesWhenLogsExist() {
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User(USER_ID, Instant.now())));
+        SleepLog log1 = new SleepLog();
+        log1.setTotalTimeInBedMinutes(480);
+        log1.setWentToBedAt(LocalTime.of(23, 0));
+        log1.setGotUpAt(LocalTime.of(7, 0));
+        log1.setMorningFeeling(MorningFeeling.OK);
+        SleepLog log2 = new SleepLog();
+        log2.setTotalTimeInBedMinutes(420);
+        log2.setWentToBedAt(LocalTime.of(22, 30));
+        log2.setGotUpAt(LocalTime.of(6, 30));
+        log2.setMorningFeeling(MorningFeeling.GOOD);
+        List<SleepLog> logs = Arrays.asList(log1, log2);
+        when(sleepLogRepository.findByUserIdAndSleepDateBetweenOrderBySleepDateAsc(eq(USER_ID), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(logs);
+
+        ThirtyDayAveragesResponse response = sleepLogService.getLast30DayAverages(USER_ID);
+
+        assertThat(response.getAverageTotalTimeInBedMinutes()).isEqualTo(450.0);
+        assertThat(response.getAverageWentToBedAt()).isNotNull();
+        assertThat(response.getAverageGotUpAt()).isNotNull();
+        assertThat(response.getMorningFeelingFrequencies().get("OK")).isEqualTo(1L);
+        assertThat(response.getMorningFeelingFrequencies().get("GOOD")).isEqualTo(1L);
+        assertThat(response.getMorningFeelingFrequencies().get("BAD")).isEqualTo(0L);
     }
 
     private static CreateSleepLogRequest validRequest() {
