@@ -41,9 +41,7 @@ class SleepLogControllerTest {
 
     @Test
     void createOrUpdateSleepLog_returns200AndBody() throws Exception {
-        String body = """
-                {"sleepDate":"2025-02-22","wentToBedAt":"23:00:00","gotUpAt":"07:30:00","totalTimeInBedMinutes":510,"morningFeeling":"GOOD"}
-                """;
+        String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00:00\",\"gotUpAt\":\"07:30:00\",\"totalTimeInBedMinutes\":510,\"morningFeeling\":\"GOOD\"}";
         SleepLogResponse response = new SleepLogResponse();
         response.setId(10L);
         response.setUserId(USER_ID);
@@ -69,9 +67,7 @@ class SleepLogControllerTest {
 
     @Test
     void createOrUpdateSleepLog_returns404WhenUserNotFound() throws Exception {
-        String body = """
-                {"sleepDate":"2025-02-22","wentToBedAt":"23:00","gotUpAt":"07:30","totalTimeInBedMinutes":510,"morningFeeling":"GOOD"}
-                """;
+        String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":510,\"morningFeeling\":\"GOOD\"}";
         when(sleepLogService.createOrUpdateSleepLog(eq(999L), any())).thenThrow(new UserNotFoundException("User not found: 999"));
 
         mockMvc.perform(post("/users/999/sleep-logs")
