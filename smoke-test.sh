@@ -10,7 +10,7 @@ echo "Smoke testing API at $BASE_URL ..."
 # 1. Create user
 echo -n "  POST /users ... "
 RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/users" -H "Content-Type: application/json")
-HTTP_BODY=$(echo "$RESP" | head -n -1)
+HTTP_BODY=$(echo "$RESP" | sed '$d')
 HTTP_CODE=$(echo "$RESP" | tail -n 1)
 if [ "$HTTP_CODE" != "200" ]; then
   echo "FAIL (HTTP $HTTP_CODE)"
