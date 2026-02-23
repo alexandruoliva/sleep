@@ -12,7 +12,7 @@
 		},
 		{
 			"key": "userId",
-			"value": "1"
+			"value": ""
 		}
 	],
 	"item": [
@@ -50,7 +50,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["users"]
 						},
-						"description": "Creates a new user. Returns { \"id\": <number> }. The id is saved to collection variable 'userId' for other requests."
+						"description": "Creates a new user. Returns { \"id\": \"<uuid>\" }. The id is saved to collection variable 'userId' for other requests."
 					}
 				}
 			]
@@ -70,7 +70,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"sleepDate\": \"2025-02-22\",\n  \"wentToBedAt\": \"23:00\",\n  \"gotUpAt\": \"07:30\",\n  \"totalTimeInBedMinutes\": 510,\n  \"morningFeeling\": \"GOOD\"\n}"
+							"raw": "{\n  \"sleepDate\": \"2026-02-22\",\n  \"wentToBedAt\": \"23:00\",\n  \"gotUpAt\": \"07:30\",\n  \"totalTimeInBedMinutes\": 510,\n  \"morningFeeling\": \"GOOD\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/users/{{userId}}/sleep-logs",

@@ -21,6 +21,7 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,7 +42,7 @@ class SleepLogServiceTest {
 
     private SleepLogService sleepLogService;
 
-    private static final long USER_ID = 1L;
+    private static final UUID USER_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
     @BeforeEach
     void setUp() {
@@ -55,7 +56,7 @@ class SleepLogServiceTest {
 
         assertThatThrownBy(() -> sleepLogService.createOrUpdateSleepLog(USER_ID, request))
                 .isInstanceOf(UserNotFoundException.class)
-                .hasMessageContaining("" + USER_ID);
+                .hasMessageContaining(USER_ID.toString());
     }
 
     @Test
@@ -63,7 +64,7 @@ class SleepLogServiceTest {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User(USER_ID, Instant.now())));
         when(sleepLogRepository.findByUserIdAndSleepDate(eq(USER_ID), eq(LocalDate.of(2025, 2, 22)))).thenReturn(Optional.empty());
         SleepLog saved = new SleepLog();
-        saved.setId(10L);
+        saved.setId(UUID.fromString("22222222-2222-2222-2222-222222222222"));
         saved.setUserId(USER_ID);
         saved.setSleepDate(LocalDate.of(2025, 2, 22));
         saved.setWentToBedAt(LocalTime.of(23, 0));
@@ -73,8 +74,9 @@ class SleepLogServiceTest {
         saved.setCreatedAt(Instant.now());
         when(sleepLogMapper.toEntity(any(CreateSleepLogRequest.class), eq(USER_ID))).thenReturn(new SleepLog());
         when(sleepLogRepository.save(any(SleepLog.class))).thenReturn(saved);
+        UUID savedId = UUID.fromString("22222222-2222-2222-2222-222222222222");
         SleepLogResponse expectedResponse = new SleepLogResponse();
-        expectedResponse.setId(10L);
+        expectedResponse.setId(savedId);
         expectedResponse.setUserId(USER_ID);
         expectedResponse.setSleepDate(LocalDate.of(2025, 2, 22));
         expectedResponse.setTotalTimeInBedMinutes(510);
@@ -84,7 +86,7 @@ class SleepLogServiceTest {
         CreateSleepLogRequest request = validRequest();
         SleepLogResponse response = sleepLogService.createOrUpdateSleepLog(USER_ID, request);
 
-        assertThat(response.getId()).isEqualTo(10L);
+        assertThat(response.getId()).isEqualTo(savedId);
         assertThat(response.getUserId()).isEqualTo(USER_ID);
         assertThat(response.getSleepDate()).isEqualTo(LocalDate.of(2025, 2, 22));
         assertThat(response.getTotalTimeInBedMinutes()).isEqualTo(510);
@@ -95,7 +97,7 @@ class SleepLogServiceTest {
     void createOrUpdateSleepLog_updatesExistingAndReturnsResponse() {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(new User(USER_ID, Instant.now())));
         SleepLog existing = new SleepLog();
-        existing.setId(5L);
+        existing.setId(UUID.fromString("33333333-3333-3333-3333-333333333333"));
         existing.setUserId(USER_ID);
         existing.setSleepDate(LocalDate.of(2025, 2, 22));
         existing.setMorningFeeling(MorningFeeling.BAD);
@@ -135,21 +137,22 @@ class SleepLogServiceTest {
 
     @Test
     void getLastNightSleep_returnsResponseWhenLogExists() {
+        UUID logId = UUID.fromString("44444444-4444-4444-4444-444444444444");
         SleepLog log = new SleepLog();
-        log.setId(5L);
+        log.setId(logId);
         log.setUserId(USER_ID);
         log.setSleepDate(LocalDate.of(2025, 2, 22));
         log.setMorningFeeling(MorningFeeling.OK);
         when(sleepLogRepository.findTopByUserIdOrderBySleepDateDesc(USER_ID)).thenReturn(Optional.of(log));
         SleepLogResponse expectedResponse = new SleepLogResponse();
-        expectedResponse.setId(5L);
+        expectedResponse.setId(logId);
         expectedResponse.setMorningFeeling(MorningFeeling.OK);
         when(sleepLogMapper.toResponse(any(SleepLog.class))).thenReturn(expectedResponse);
 
         Optional<SleepLogResponse> result = sleepLogService.getLastNightSleep(USER_ID);
 
         assertThat(result).isPresent();
-        assertThat(result.get().getId()).isEqualTo(5L);
+        assertThat(result.get().getId()).isEqualTo(logId);
         assertThat(result.get().getMorningFeeling()).isEqualTo(MorningFeeling.OK);
     }
 

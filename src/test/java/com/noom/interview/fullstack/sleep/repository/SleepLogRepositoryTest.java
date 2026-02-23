@@ -36,7 +36,7 @@ class SleepLogRepositoryTest {
 
         SleepLog saved = sleepLogRepository.save(log);
 
-        assertThat(saved.getId()).isPositive();
+        assertThat(saved.getId()).isNotNull();
         assertThat(saved.getUserId()).isEqualTo(user.getId());
         assertThat(saved.getSleepDate()).isEqualTo(LocalDate.of(2025, 2, 22));
         assertThat(saved.getTotalTimeInBedMinutes()).isEqualTo(510);

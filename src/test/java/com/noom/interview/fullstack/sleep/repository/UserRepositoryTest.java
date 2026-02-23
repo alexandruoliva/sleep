@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
@@ -18,13 +20,13 @@ class UserRepositoryTest {
     @Test
     void save_returnsUserWithGeneratedId() {
         User user = userRepository.save(new User());
-        assertThat(user.getId()).isPositive();
+        assertThat(user.getId()).isNotNull();
         assertThat(user.getCreatedAt()).isNotNull();
     }
 
     @Test
     void findById_returnsEmptyWhenNotFound() {
-        assertThat(userRepository.findById(999L)).isEmpty();
+        assertThat(userRepository.findById(UUID.randomUUID())).isEmpty();
     }
 
     @Test

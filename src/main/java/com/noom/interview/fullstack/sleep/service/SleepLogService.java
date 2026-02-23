@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -41,7 +42,7 @@ public class SleepLogService {
      * @return the saved sleep log as response
      */
     @Transactional
-    public SleepLogResponse createOrUpdateSleepLog(long userId, CreateSleepLogRequest request) {
+    public SleepLogResponse createOrUpdateSleepLog(UUID userId, CreateSleepLogRequest request) {
         ensureUserExists(userId);
         validateTotalTime(request);
 
@@ -61,7 +62,7 @@ public class SleepLogService {
     /**
      * Returns the most recent sleep log for the user ("last night's sleep"), if any.
      */
-    public Optional<SleepLogResponse> getLastNightSleep(long userId) {
+    public Optional<SleepLogResponse> getLastNightSleep(UUID userId) {
         return sleepLogRepository.findTopByUserIdOrderBySleepDateDesc(userId)
                 .map(sleepLogMapper::toResponse);
     }
@@ -70,7 +71,7 @@ public class SleepLogService {
      * Returns the last 30-day averages for the user: date range, average time in bed,
      * average went-to-bed and got-up times, and morning feeling frequencies.
      */
-    public ThirtyDayAveragesResponse getLast30DayAverages(long userId) {
+    public ThirtyDayAveragesResponse getLast30DayAverages(UUID userId) {
         ensureUserExists(userId);
         LocalDate rangeEnd = LocalDate.now();
         LocalDate rangeStart = rangeEnd.minusDays(29);
@@ -121,7 +122,7 @@ public class SleepLogService {
         return LocalTime.of((avgMinutes / 60) % 24, avgMinutes % 60);
     }
 
-    private void ensureUserExists(long userId) {
+    private void ensureUserExists(UUID userId) {
         if (userRepository.findById(userId).isEmpty()) {
             throw new UserNotFoundException("User not found: " + userId);
         }

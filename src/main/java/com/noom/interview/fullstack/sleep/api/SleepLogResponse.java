@@ -7,6 +7,7 @@ import lombok.Setter;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.UUID;
 
 /**
  * Response body for a single sleep log.
@@ -15,8 +16,8 @@ import java.time.LocalTime;
 @Setter
 public final class SleepLogResponse {
 
-    private long id;
-    private long userId;
+    private UUID id;
+    private UUID userId;
     private LocalDate sleepDate;
     private LocalTime wentToBedAt;
     private LocalTime gotUpAt;

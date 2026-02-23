@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -37,13 +38,14 @@ class SleepLogControllerTest {
     @MockBean
     private SleepLogService sleepLogService;
 
-    private static final long USER_ID = 1L;
+    private static final UUID USER_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID LOG_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
     @Test
     void createOrUpdateSleepLog_returns200AndBody() throws Exception {
         String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00:00\",\"gotUpAt\":\"07:30:00\",\"totalTimeInBedMinutes\":510,\"morningFeeling\":\"GOOD\"}";
         SleepLogResponse response = new SleepLogResponse();
-        response.setId(10L);
+        response.setId(LOG_ID);
         response.setUserId(USER_ID);
         response.setSleepDate(LocalDate.of(2025, 2, 22));
         response.setWentToBedAt(LocalTime.of(23, 0));
@@ -57,8 +59,8 @@ class SleepLogControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(10))
-                .andExpect(jsonPath("$.userId").value(USER_ID))
+                .andExpect(jsonPath("$.id").value(LOG_ID.toString()))
+                .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
                 .andExpect(jsonPath("$.morningFeeling").value("GOOD"))
                 .andExpect(jsonPath("$.totalTimeInBedMinutes").value(510));
 
@@ -68,9 +70,10 @@ class SleepLogControllerTest {
     @Test
     void createOrUpdateSleepLog_returns404WhenUserNotFound() throws Exception {
         String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":510,\"morningFeeling\":\"GOOD\"}";
-        when(sleepLogService.createOrUpdateSleepLog(eq(999L), any())).thenThrow(new UserNotFoundException("User not found: 999"));
+        UUID unknownUserId = UUID.fromString("99999999-9999-9999-9999-999999999999");
+        when(sleepLogService.createOrUpdateSleepLog(eq(unknownUserId), any())).thenThrow(new UserNotFoundException("User not found"));
 
-        mockMvc.perform(post("/users/999/sleep-logs")
+        mockMvc.perform(post("/users/{userId}/sleep-logs", unknownUserId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isNotFound());
@@ -79,7 +82,7 @@ class SleepLogControllerTest {
     @Test
     void getLastNightSleep_returns200AndBodyWhenFound() throws Exception {
         SleepLogResponse response = new SleepLogResponse();
-        response.setId(5L);
+        response.setId(LOG_ID);
         response.setUserId(USER_ID);
         response.setSleepDate(LocalDate.of(2025, 2, 22));
         response.setMorningFeeling(MorningFeeling.OK);
@@ -87,7 +90,7 @@ class SleepLogControllerTest {
 
         mockMvc.perform(get("/users/{userId}/sleep-logs/last", USER_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.id").value(LOG_ID.toString()))
                 .andExpect(jsonPath("$.morningFeeling").value("OK"));
 
         verify(sleepLogService).getLastNightSleep(USER_ID);

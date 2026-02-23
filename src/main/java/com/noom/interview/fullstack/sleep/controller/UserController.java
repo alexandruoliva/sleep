@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Minimal user API so clients can obtain a userId for sleep log endpoints.
@@ -24,9 +25,9 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
-    @Operation(summary = "Create user", description = "Creates a new user and returns the id. Use this id for sleep log endpoints.")
+    @Operation(summary = "Create user", description = "Creates a new user and returns the id (UUID). Use this id for sleep log endpoints.")
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Long> createUser() {
+    public Map<String, UUID> createUser() {
         User user = userRepository.save(new User());
         return Map.of("id", user.getId());
     }

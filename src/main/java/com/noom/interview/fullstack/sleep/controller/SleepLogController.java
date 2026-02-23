@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.UUID;
 
 /**
  * REST API for sleep logs: create/update last night's log and fetch last night's sleep.
@@ -37,7 +38,7 @@ public class SleepLogController {
     @ApiResponse(responseCode = "404", description = "User not found")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SleepLogResponse> createOrUpdateSleepLog(
-            @PathVariable long userId,
+            @PathVariable UUID userId,
             @Valid @RequestBody CreateSleepLogRequest request) {
         SleepLogResponse response = sleepLogService.createOrUpdateSleepLog(userId, request);
         return ResponseEntity.ok(response);
@@ -48,7 +49,7 @@ public class SleepLogController {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SleepLogResponse.class)))
     @ApiResponse(responseCode = "404", description = "No sleep log found for this user")
     @GetMapping(value = "/last", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<SleepLogResponse> getLastNightSleep(@PathVariable long userId) {
+    public ResponseEntity<SleepLogResponse> getLastNightSleep(@PathVariable UUID userId) {
         return sleepLogService.getLastNightSleep(userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -59,7 +60,7 @@ public class SleepLogController {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ThirtyDayAveragesResponse.class)))
     @ApiResponse(responseCode = "404", description = "User not found")
     @GetMapping(value = "/30-day-averages", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ThirtyDayAveragesResponse> getLast30DayAverages(@PathVariable long userId) {
+    public ResponseEntity<ThirtyDayAveragesResponse> getLast30DayAverages(@PathVariable UUID userId) {
         ThirtyDayAveragesResponse response = sleepLogService.getLast30DayAverages(userId);
         return ResponseEntity.ok(response);
     }
