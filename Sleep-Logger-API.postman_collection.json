@@ -1,0 +1,112 @@
+{
+	"info": {
+		"_postman_id": "sleep-logger-api",
+		"name": "Sleep Logger API",
+		"description": "Noom Sleep Logger API – create user, log sleep, get last night, get 30-day averages.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "userId",
+			"value": "1"
+		}
+	],
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const json = pm.response.json();",
+									"    if (json.id !== undefined) {",
+									"        pm.collectionVariables.set('userId', json.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["users"]
+						},
+						"description": "Creates a new user. Returns { \"id\": <number> }. The id is saved to collection variable 'userId' for other requests."
+					}
+				}
+			]
+		},
+		{
+			"name": "Sleep logs",
+			"item": [
+				{
+					"name": "Create or update sleep log",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sleepDate\": \"2025-02-22\",\n  \"wentToBedAt\": \"23:00\",\n  \"gotUpAt\": \"07:30\",\n  \"totalTimeInBedMinutes\": 510,\n  \"morningFeeling\": \"GOOD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/sleep-logs",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "sleep-logs"]
+						},
+						"description": "Creates or updates the sleep log for the given date. One log per user per day; re-posting updates. morningFeeling: BAD | OK | GOOD."
+					}
+				},
+				{
+					"name": "Get last night's sleep",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/sleep-logs/last",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "sleep-logs", "last"]
+						},
+						"description": "Returns the most recent sleep log for the user. 404 if none."
+					}
+				},
+				{
+					"name": "Get 30-day averages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/sleep-logs/30-day-averages",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "sleep-logs", "30-day-averages"]
+						},
+						"description": "Returns range, average time in bed, average bed/rise times, and morning feeling frequencies for the last 30 calendar days."
+					}
+				}
+			]
+		}
+	]
+}
