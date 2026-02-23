@@ -5,10 +5,9 @@ REST API for logging and querying sleep data. Supports creating/fetching the las
 ## How to run
 
 - **Docker (recommended):** From the project root, run:
-  ```powershell
-  .\run-docker-compose.ps1
-  ```
-  This stops any existing containers, rebuilds, and starts the API and PostgreSQL. You can also use `docker-compose up --build` directly. Requires Docker; uses ports **5432** (PostgreSQL) and **8080** (API).
+  - **Windows (PowerShell):** `.\run-docker-compose.ps1`
+  - **macOS / Linux:** `./run-docker-compose.sh` (make executable first: `chmod +x run-docker-compose.sh`)
+  This stops any existing containers, rebuilds, and starts the API and PostgreSQL. You can also use `docker compose up --build` directly. Requires Docker; uses ports **5432** (PostgreSQL) and **8080** (API).
 
 - **Local run:** Start PostgreSQL (port 5432) with the same credentials as in `application.properties`, then:
   ```bash
