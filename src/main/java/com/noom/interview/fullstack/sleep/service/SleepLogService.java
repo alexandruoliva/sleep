@@ -3,6 +3,7 @@ package com.noom.interview.fullstack.sleep.service;
 import com.noom.interview.fullstack.sleep.api.CreateSleepLogRequest;
 import com.noom.interview.fullstack.sleep.api.SleepLogResponse;
 import com.noom.interview.fullstack.sleep.api.ThirtyDayAveragesResponse;
+import com.noom.interview.fullstack.sleep.mapper.SleepLogMapper;
 import com.noom.interview.fullstack.sleep.models.MorningFeeling;
 import com.noom.interview.fullstack.sleep.models.SleepLog;
 import com.noom.interview.fullstack.sleep.repository.SleepLogRepository;
@@ -26,10 +27,12 @@ public class SleepLogService {
 
     private final UserRepository userRepository;
     private final SleepLogRepository sleepLogRepository;
+    private final SleepLogMapper sleepLogMapper;
 
-    public SleepLogService(UserRepository userRepository, SleepLogRepository sleepLogRepository) {
+    public SleepLogService(UserRepository userRepository, SleepLogRepository sleepLogRepository, SleepLogMapper sleepLogMapper) {
         this.userRepository = userRepository;
         this.sleepLogRepository = sleepLogRepository;
+        this.sleepLogMapper = sleepLogMapper;
     }
 
     /**
@@ -44,24 +47,15 @@ public class SleepLogService {
 
         SleepLog saved = sleepLogRepository.findByUserIdAndSleepDate(userId, request.getSleepDate())
                 .map(existing -> {
-                    existing.setWentToBedAt(request.getWentToBedAt());
-                    existing.setGotUpAt(request.getGotUpAt());
-                    existing.setTotalTimeInBedMinutes(request.getTotalTimeInBedMinutes());
-                    existing.setMorningFeeling(request.getMorningFeeling());
+                    sleepLogMapper.updateFromRequest(existing, request);
                     return sleepLogRepository.save(existing);
                 })
                 .orElseGet(() -> {
-                    SleepLog log = new SleepLog();
-                    log.setUserId(userId);
-                    log.setSleepDate(request.getSleepDate());
-                    log.setWentToBedAt(request.getWentToBedAt());
-                    log.setGotUpAt(request.getGotUpAt());
-                    log.setTotalTimeInBedMinutes(request.getTotalTimeInBedMinutes());
-                    log.setMorningFeeling(request.getMorningFeeling());
+                    SleepLog log = sleepLogMapper.toEntity(request, userId);
                     return sleepLogRepository.save(log);
                 });
 
-        return SleepLogResponse.from(saved);
+        return sleepLogMapper.toResponse(saved);
     }
 
     /**
@@ -69,7 +63,7 @@ public class SleepLogService {
      */
     public Optional<SleepLogResponse> getLastNightSleep(long userId) {
         return sleepLogRepository.findTopByUserIdOrderBySleepDateDesc(userId)
-                .map(SleepLogResponse::from);
+                .map(sleepLogMapper::toResponse);
     }
 
     /**

@@ -5,6 +5,7 @@ import com.noom.interview.fullstack.sleep.api.SleepLogResponse;
 import com.noom.interview.fullstack.sleep.api.ThirtyDayAveragesResponse;
 import com.noom.interview.fullstack.sleep.models.MorningFeeling;
 import com.noom.interview.fullstack.sleep.models.SleepLog;
+import com.noom.interview.fullstack.sleep.mapper.SleepLogMapper;
 import com.noom.interview.fullstack.sleep.models.User;
 import com.noom.interview.fullstack.sleep.repository.SleepLogRepository;
 import com.noom.interview.fullstack.sleep.repository.UserRepository;
@@ -35,6 +36,8 @@ class SleepLogServiceTest {
     private UserRepository userRepository;
     @Mock
     private SleepLogRepository sleepLogRepository;
+    @Mock
+    private SleepLogMapper sleepLogMapper;
 
     private SleepLogService sleepLogService;
 
@@ -42,7 +45,7 @@ class SleepLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        sleepLogService = new SleepLogService(userRepository, sleepLogRepository);
+        sleepLogService = new SleepLogService(userRepository, sleepLogRepository, sleepLogMapper);
     }
 
     @Test
@@ -68,7 +71,15 @@ class SleepLogServiceTest {
         saved.setTotalTimeInBedMinutes(510);
         saved.setMorningFeeling(MorningFeeling.GOOD);
         saved.setCreatedAt(Instant.now());
+        when(sleepLogMapper.toEntity(any(CreateSleepLogRequest.class), eq(USER_ID))).thenReturn(new SleepLog());
         when(sleepLogRepository.save(any(SleepLog.class))).thenReturn(saved);
+        SleepLogResponse expectedResponse = new SleepLogResponse();
+        expectedResponse.setId(10L);
+        expectedResponse.setUserId(USER_ID);
+        expectedResponse.setSleepDate(LocalDate.of(2025, 2, 22));
+        expectedResponse.setTotalTimeInBedMinutes(510);
+        expectedResponse.setMorningFeeling(MorningFeeling.GOOD);
+        when(sleepLogMapper.toResponse(any(SleepLog.class))).thenReturn(expectedResponse);
 
         CreateSleepLogRequest request = validRequest();
         SleepLogResponse response = sleepLogService.createOrUpdateSleepLog(USER_ID, request);
@@ -91,6 +102,9 @@ class SleepLogServiceTest {
         when(sleepLogRepository.findByUserIdAndSleepDate(eq(USER_ID), eq(LocalDate.of(2025, 2, 22)))).thenReturn(Optional.of(existing));
         existing.setMorningFeeling(MorningFeeling.GOOD);
         when(sleepLogRepository.save(any(SleepLog.class))).thenReturn(existing);
+        SleepLogResponse expectedResponse = new SleepLogResponse();
+        expectedResponse.setMorningFeeling(MorningFeeling.GOOD);
+        when(sleepLogMapper.toResponse(any(SleepLog.class))).thenReturn(expectedResponse);
 
         CreateSleepLogRequest request = validRequest();
         request.setMorningFeeling(MorningFeeling.GOOD);
@@ -127,6 +141,10 @@ class SleepLogServiceTest {
         log.setSleepDate(LocalDate.of(2025, 2, 22));
         log.setMorningFeeling(MorningFeeling.OK);
         when(sleepLogRepository.findTopByUserIdOrderBySleepDateDesc(USER_ID)).thenReturn(Optional.of(log));
+        SleepLogResponse expectedResponse = new SleepLogResponse();
+        expectedResponse.setId(5L);
+        expectedResponse.setMorningFeeling(MorningFeeling.OK);
+        when(sleepLogMapper.toResponse(any(SleepLog.class))).thenReturn(expectedResponse);
 
         Optional<SleepLogResponse> result = sleepLogService.getLastNightSleep(USER_ID);
 
