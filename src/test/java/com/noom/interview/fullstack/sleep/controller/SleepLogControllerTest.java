@@ -2,6 +2,7 @@ package com.noom.interview.fullstack.sleep.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.noom.interview.fullstack.sleep.api.SleepLogResponse;
+import com.noom.interview.fullstack.sleep.api.ThirtyDayAveragesResponse;
 import com.noom.interview.fullstack.sleep.models.MorningFeeling;
 import com.noom.interview.fullstack.sleep.service.SleepLogService;
 import com.noom.interview.fullstack.sleep.service.UserNotFoundException;
@@ -16,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -104,5 +107,85 @@ class SleepLogControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(sleepLogService).getLastNightSleep(USER_ID);
+    }
+
+    // --- 30-day averages ---
+
+    @Test
+    void getLast30DayAverages_returns200WithBody() throws Exception {
+        ThirtyDayAveragesResponse response = new ThirtyDayAveragesResponse();
+        response.setRangeStart(LocalDate.of(2025, 1, 25));
+        response.setRangeEnd(LocalDate.of(2025, 2, 23));
+        response.setAverageTotalTimeInBedMinutes(450.0);
+        response.setAverageWentToBedAt(LocalTime.of(23, 15));
+        response.setAverageGotUpAt(LocalTime.of(7, 0));
+        Map<String, Long> frequencies = new HashMap<>();
+        frequencies.put("BAD", 0L);
+        frequencies.put("OK", 2L);
+        frequencies.put("GOOD", 1L);
+        response.setMorningFeelingFrequencies(frequencies);
+        when(sleepLogService.getLast30DayAverages(USER_ID)).thenReturn(response);
+
+        mockMvc.perform(get("/users/{userId}/sleep-logs/30-day-averages", USER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rangeStart").value("2025-01-25"))
+                .andExpect(jsonPath("$.rangeEnd").value("2025-02-23"))
+                .andExpect(jsonPath("$.averageTotalTimeInBedMinutes").value(450.0))
+                .andExpect(jsonPath("$.morningFeelingFrequencies.OK").value(2))
+                .andExpect(jsonPath("$.morningFeelingFrequencies.GOOD").value(1));
+
+        verify(sleepLogService).getLast30DayAverages(USER_ID);
+    }
+
+    @Test
+    void getLast30DayAverages_returns404WhenUserNotFound() throws Exception {
+        when(sleepLogService.getLast30DayAverages(USER_ID)).thenThrow(new UserNotFoundException("User not found"));
+
+        mockMvc.perform(get("/users/{userId}/sleep-logs/30-day-averages", USER_ID))
+                .andExpect(status().isNotFound());
+
+        verify(sleepLogService).getLast30DayAverages(USER_ID);
+    }
+
+    // --- Validation (400) ---
+
+    @Test
+    void createOrUpdateSleepLog_returns400WhenBodyMissingRequiredFields() throws Exception {
+        String invalidBody = "{}";
+
+        mockMvc.perform(post("/users/{userId}/sleep-logs", USER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createOrUpdateSleepLog_returns400WhenTotalTimeInBedOutOfRange() throws Exception {
+        String bodyZero = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":0,\"morningFeeling\":\"GOOD\"}";
+
+        mockMvc.perform(post("/users/{userId}/sleep-logs", USER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyZero))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createOrUpdateSleepLog_returns400WhenInvalidMorningFeeling() throws Exception {
+        String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":480,\"morningFeeling\":\"INVALID\"}";
+
+        mockMvc.perform(post("/users/{userId}/sleep-logs", USER_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createOrUpdateSleepLog_returns400WhenInvalidUserIdInPath() throws Exception {
+        String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":510,\"morningFeeling\":\"GOOD\"}";
+
+        mockMvc.perform(post("/users/not-a-uuid/sleep-logs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
     }
 }
