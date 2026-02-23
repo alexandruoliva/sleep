@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,18 +87,23 @@ class SleepApiIntegrationTest {
     }
 
     @Test
-    void createSleepLog_returns400WhenInvalidBody() {
+    void createSleepLog_returns400WithValidationErrorsWhenInvalidBody() {
         ResponseEntity<Map> createUserResponse = restTemplate.postForEntity("/users", null, Map.class);
         assertThat(createUserResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         String userId = String.valueOf(createUserResponse.getBody().get("id"));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<Void> response = restTemplate.postForEntity(
+        ResponseEntity<Map> response = restTemplate.postForEntity(
                 "/users/" + userId + "/sleep-logs",
                 new HttpEntity<>("{}", headers),
-                Void.class);
+                Map.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("message")).isEqualTo("Validation failed");
+        assertThat(response.getBody().get("errors")).isInstanceOf(List.class);
+        List<?> errors = (List<?>) response.getBody().get("errors");
+        assertThat(errors).hasSize(5);
     }
 
     @Test

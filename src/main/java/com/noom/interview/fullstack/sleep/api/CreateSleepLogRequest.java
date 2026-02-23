@@ -26,9 +26,9 @@ public final class CreateSleepLogRequest {
     @NotNull(message = "gotUpAt is required")
     private LocalTime gotUpAt;
 
-    @NotNull
-    @Min(1)
-    @Max(24 * 60)
+    @NotNull(message = "totalTimeInBedMinutes is required")
+    @Min(value = 1, message = "totalTimeInBedMinutes must be between 1 and 1440")
+    @Max(value = 24 * 60, message = "totalTimeInBedMinutes must be between 1 and 1440")
     private Integer totalTimeInBedMinutes;
 
     @NotNull(message = "morningFeeling is required")

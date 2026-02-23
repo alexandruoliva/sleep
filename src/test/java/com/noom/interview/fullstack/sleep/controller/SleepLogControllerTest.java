@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,6 +25,8 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,6 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(SleepLogController.class)
+@Import(GlobalExceptionHandler.class)
 @ActiveProfiles("unittest")
 class SleepLogControllerTest {
 
@@ -150,42 +154,60 @@ class SleepLogControllerTest {
     // --- Validation (400) ---
 
     @Test
-    void createOrUpdateSleepLog_returns400WhenBodyMissingRequiredFields() throws Exception {
+    void createOrUpdateSleepLog_returns400WithFieldErrorsWhenBodyMissingRequiredFields() throws Exception {
         String invalidBody = "{}";
 
         mockMvc.perform(post("/users/{userId}/sleep-logs", USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidBody))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors", hasSize(5)))
+                .andExpect(jsonPath("$.errors[*].field", hasItem("sleepDate")))
+                .andExpect(jsonPath("$.errors[*].field", hasItem("wentToBedAt")))
+                .andExpect(jsonPath("$.errors[*].field", hasItem("gotUpAt")))
+                .andExpect(jsonPath("$.errors[*].field", hasItem("totalTimeInBedMinutes")))
+                .andExpect(jsonPath("$.errors[*].field", hasItem("morningFeeling")));
     }
 
     @Test
-    void createOrUpdateSleepLog_returns400WhenTotalTimeInBedOutOfRange() throws Exception {
+    void createOrUpdateSleepLog_returns400WithFieldErrorWhenTotalTimeInBedOutOfRange() throws Exception {
         String bodyZero = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":0,\"morningFeeling\":\"GOOD\"}";
 
         mockMvc.perform(post("/users/{userId}/sleep-logs", USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bodyZero))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[*].field", hasItem("totalTimeInBedMinutes")))
+                .andExpect(jsonPath("$.errors[0].message").value("totalTimeInBedMinutes must be between 1 and 1440"));
     }
 
     @Test
-    void createOrUpdateSleepLog_returns400WhenInvalidMorningFeeling() throws Exception {
+    void createOrUpdateSleepLog_returns400WithFieldErrorWhenInvalidMorningFeeling() throws Exception {
         String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":480,\"morningFeeling\":\"INVALID\"}";
 
         mockMvc.perform(post("/users/{userId}/sleep-logs", USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[*].field", hasItem("morningFeeling")));
     }
 
     @Test
-    void createOrUpdateSleepLog_returns400WhenInvalidUserIdInPath() throws Exception {
+    void createOrUpdateSleepLog_returns400WithFieldErrorWhenInvalidUserIdInPath() throws Exception {
         String body = "{\"sleepDate\":\"2025-02-22\",\"wentToBedAt\":\"23:00\",\"gotUpAt\":\"07:30\",\"totalTimeInBedMinutes\":510,\"morningFeeling\":\"GOOD\"}";
 
         mockMvc.perform(post("/users/not-a-uuid/sleep-logs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors").isArray())
+                .andExpect(jsonPath("$.errors[*].field", hasItem("userId")));
     }
 }
