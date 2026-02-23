@@ -154,6 +154,8 @@ class SleepLogServiceTest {
         assertThat(response.getRangeEnd()).isNotNull();
         assertThat(response.getRangeEnd()).isEqualTo(response.getRangeStart().plusDays(29));
         assertThat(response.getAverageTotalTimeInBedMinutes()).isEqualTo(0);
+        assertThat(response.getAverageWentToBedAt()).isNull();
+        assertThat(response.getAverageGotUpAt()).isNull();
         assertThat(response.getMorningFeelingFrequencies()).containsKeys("BAD", "OK", "GOOD");
         assertThat(response.getMorningFeelingFrequencies().values()).containsOnly(0L);
     }

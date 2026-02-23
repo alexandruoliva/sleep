@@ -97,8 +97,10 @@ public class SleepLogService {
         double avgMinutes = logs.stream().mapToInt(SleepLog::getTotalTimeInBedMinutes).average().orElse(0);
         response.setAverageTotalTimeInBedMinutes(Math.round(avgMinutes * 10) / 10.0);
 
-        response.setAverageWentToBedAt(averageLocalTime(logs.stream().map(SleepLog::getWentToBedAt).collect(Collectors.toList())));
-        response.setAverageGotUpAt(averageLocalTime(logs.stream().map(SleepLog::getGotUpAt).collect(Collectors.toList())));
+        List<LocalTime> wentToBedTimes = logs.stream().map(SleepLog::getWentToBedAt).collect(Collectors.toList());
+        List<LocalTime> gotUpTimes = logs.stream().map(SleepLog::getGotUpAt).collect(Collectors.toList());
+        response.setAverageWentToBedAt(averageLocalTime(wentToBedTimes));
+        response.setAverageGotUpAt(averageLocalTime(gotUpTimes));
 
         Map<String, Long> fromLogs = logs.stream()
                 .collect(Collectors.groupingBy(log -> log.getMorningFeeling().name(), Collectors.counting()));
@@ -114,17 +116,15 @@ public class SleepLogService {
                 .collect(Collectors.toMap(MorningFeeling::name, f -> 0L));
     }
 
-    /** Averages a list of LocalTime values (as clock times, minutes since midnight). */
+    /** Averages non-null LocalTime values (as clock times, minutes since midnight). Returns null if no valid times. */
     private static LocalTime averageLocalTime(List<LocalTime> times) {
-        return Optional.ofNullable(times)
-                .filter(t -> !t.isEmpty())
-                .map(t -> {
-                    int avgMinutes = t.stream()
-                            .mapToInt(tt -> tt.getHour() * 60 + tt.getMinute() + tt.getSecond() / 60)
-                            .sum() / t.size();
-                    return LocalTime.of((avgMinutes / 60) % 24, avgMinutes % 60);
-                })
-                .orElse(null);
+        if (times == null || times.isEmpty()) return null;
+        List<LocalTime> nonNull = times.stream().filter(t -> t != null).collect(Collectors.toList());
+        if (nonNull.isEmpty()) return null;
+        int avgMinutes = nonNull.stream()
+                .mapToInt(t -> t.getHour() * 60 + t.getMinute() + t.getSecond() / 60)
+                .sum() / nonNull.size();
+        return LocalTime.of((avgMinutes / 60) % 24, avgMinutes % 60);
     }
 
     private void ensureUserExists(long userId) {
