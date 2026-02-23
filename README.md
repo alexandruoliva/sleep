@@ -25,7 +25,12 @@ REST API for logging and querying sleep data. Supports creating/fetching the las
    ```
    Or on Windows: `.\gradlew.bat test`
 
-2. **Manual API testing**
+2. **Smoke tests** (API up required: run Docker first, then from project root)
+   - **Windows (PowerShell):** `.\smoke-test.ps1` (optional: `-BaseUrl "http://localhost:8080"`)
+   - **macOS / Linux:** `./smoke-test.sh` (optional: `./smoke-test.sh http://localhost:8080`). Make executable once: `chmod +x smoke-test.sh`
+   The scripts call Create user → Create sleep log → Get last night → Get 30-day averages and exit with success only if all return HTTP 200.
+
+3. **Manual API testing**
    - Import `Sleep-Logger-API.postman_collection.json` into Postman.
    - Run **Create user** first; the collection saves the returned `id` (UUID) as `userId`.
    - Then use **Create or update sleep log**, **Get last night's sleep**, and **Get 30-day averages** with that user.
